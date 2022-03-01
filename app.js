@@ -1,8 +1,11 @@
 require("dotenv").config();
+require('express-async-errors');
 
 const express = require("express");
 const app = express();
 const morgan = require("morgan"); 
+
+const authRouter = require("./routes/authRoutes");
 
 // Connect to DB
 const connectDB = require("./db/connect");
@@ -22,6 +25,8 @@ app.use(express.json());
 app.get("/", (req, res) => {
     res.send("e-commerce api")
 })
+
+app.use("/api/v1/auth", authRouter);
 
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
