@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const {StatusCodes} = require("http-status-codes");
-const {BadRequestError} = require("../errors");
+const {BadRequestError, UnauthenticatedError} = require("../errors");
+const {attachCookiesToResponse} = require("../utils");
 
 const register = async(req, res) => {
     const {email, name, password} = req.body;
@@ -13,15 +14,45 @@ const register = async(req, res) => {
     const isFirstUser = await User.countDocuments() === 0;
     const role = isFirstUser ? "admin" : "user"
     const user = await User.create({name, email, password, role});
-    res.status(StatusCodes.CREATED).json({user});
+
+    const userToken = {name: user.name, userId: user._id, role: user.role};
+
+    // attaching cookie to our response object - (Will create JWT as well)
+    attachCookiesToResponse({res, user: userToken});
+
+    res.status(StatusCodes.CREATED).json({user: userToken});
 }
 
 const login = async(req, res) => {
-    res.send("Login user");
+    const {email, password} = req.body;
+    if(!email || !password){
+        throw new BadRequestError("Please provide email and password");
+    }
+    
+    const user = await User.findOne({email});
+    
+    if(!user){
+        throw new UnauthenticatedError("Invalid credentials");
+    }
+
+    const isPasswordCorrect = await user.comparePassword(password);
+    if(!isPasswordCorrect){
+        throw new UnauthenticatedError("Invalid credentials");
+    }
+
+    // create token and attach cookie to res 
+    const userToken = {name: user.name, userId: user._id, role: user.role};
+    attachCookiesToResponse({res, user: userToken});
+    res.status(StatusCodes.OK).json({user: userToken});
 }
 
 const logout = (req, res) => {
-    res.send("Logout user");
+    res.cookie("token", "logout", {
+        httpOnly: true,
+        expires: new Date(Date.now())
+    });
+
+    res.status(StatusCodes.OK).json({msg: 'user logged out'});
 }
 
 module.exports = {

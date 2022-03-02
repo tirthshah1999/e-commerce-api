@@ -4,6 +4,7 @@ require('express-async-errors');
 const express = require("express");
 const app = express();
 const morgan = require("morgan"); 
+const cookieParser = require("cookie-parser");
 
 const authRouter = require("./routes/authRoutes");
 
@@ -19,10 +20,20 @@ const PORT = process.env.PORT || 3000;
 // http-logger: e.g: GET / 304 - - 3.076 ms
 app.use(morgan("tiny"));
 
+
 // so we can access json data in req.body while post or put/patch request
 app.use(express.json());
 
+// grab the cookie which browser is providing
+app.use(cookieParser(process.env.JWT_SECRET));
+
 app.get("/", (req, res) => {
+    res.send("e-commerce api")
+})
+
+app.get("/api/v1", (req, res) => {
+    // console.log(req.cookies);
+    console.log(req.signedCookies);
     res.send("e-commerce api")
 })
 
