@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const {StatusCodes} = require("http-status-codes");
 const {BadRequestError, UnauthenticatedError} = require("../errors");
-const {attachCookiesToResponse} = require("../utils");
+const {attachCookiesToResponse, createTokenUser} = require("../utils");
 
 const register = async(req, res) => {
     const {email, name, password} = req.body;
@@ -15,7 +15,7 @@ const register = async(req, res) => {
     const role = isFirstUser ? "admin" : "user"
     const user = await User.create({name, email, password, role});
 
-    const userToken = {name: user.name, userId: user._id, role: user.role};
+    const userToken = createTokenUser(user);
 
     // attaching cookie to our response object - (Will create JWT as well)
     attachCookiesToResponse({res, user: userToken});
@@ -41,7 +41,7 @@ const login = async(req, res) => {
     }
 
     // create token and attach cookie to res 
-    const userToken = {name: user.name, userId: user._id, role: user.role};
+    const userToken = createTokenUser(user);
     attachCookiesToResponse({res, user: userToken});
     res.status(StatusCodes.OK).json({user: userToken});
 }

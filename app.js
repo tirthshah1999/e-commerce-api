@@ -6,7 +6,9 @@ const app = express();
 const morgan = require("morgan"); 
 const cookieParser = require("cookie-parser");
 
+// routes
 const authRouter = require("./routes/authRoutes");
+const userRouter = require("./routes/userRoutes");
 
 // Connect to DB
 const connectDB = require("./db/connect");
@@ -14,6 +16,7 @@ const connectDB = require("./db/connect");
 // middleware
 const notFoundMiddleware = require("./middleware/not-found");
 const errorHandlerMiddleware = require("./middleware/error-handler");
+const {authenticatedUser} = require("./middleware/authentication");
 
 const PORT = process.env.PORT || 3000;
 
@@ -38,6 +41,7 @@ app.get("/api/v1", (req, res) => {
 })
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/users", authenticatedUser, userRouter);
 
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
