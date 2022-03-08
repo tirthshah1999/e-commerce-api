@@ -65,6 +65,19 @@ const ProductSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-}, {timestamps: true});
+}, {timestamps: true, toJSON: {virtuals: true}, toObject: {virtuals: true}});
+
+// We want singleProduct, that review should be display but we have no connection Product->Review
+ProductSchema.virtual("reviews", {
+  ref: "Review",
+  localField: "_id",           // grab me productId
+  foreignField: "product",      // grab me product which was in Review model
+  justOne: false
+})
+
+// If we delete product, then review also be deleted with that product
+ProductSchema.pre("remove", async function(){
+  await this.model("Review").deleteMany({product: this._id});
+})
 
 module.exports = mongoose.model("Product", ProductSchema);
