@@ -32,4 +32,38 @@ const ReviewSchema = mongoose.Schema({
 // 1 user can review only 1 product
 ReviewSchema.index({product: 1, user: 1}, {unique: true});
 
+// Aggregation pipeline can return results for groups of documents. For example, return the total, average, maximum, and minimum values. Here we want to average rating of product
+ReviewSchema.statics.calculateAverageRating = async function (productId) {
+    const result = await this.aggregate([
+      { $match: { product: productId } },    // filter all reviews associated with that product
+      {
+        $group: {
+          _id: null,                        // group that filtered reviews and calculate
+          averageRating: { $avg: '$rating' },
+          numOfReviews: { $sum: 1 },
+        },
+      },
+    ]);
+  
+    try {
+      await this.model('Product').findOneAndUpdate(
+        { _id: productId },
+        {
+          averageRating: Math.ceil(result[0]?.averageRating || 0),
+          numOfReviews: result[0]?.numOfReviews || 0,
+        }
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+ReviewSchema.post("save", async function(){
+    await this.constructor.calculateAverageRating(this.product);
+})
+
+ReviewSchema.post("remove", async function(){
+    await this.constructor.calculateAverageRating(this.product);
+})
+
 module.exports = mongoose.model("Review", ReviewSchema);
